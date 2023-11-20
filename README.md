@@ -4,9 +4,7 @@
 
 Documentation :
 - [Assistants API](https://platform.openai.com/docs/assistants/overview)
-![assistants](img/assistant.png)
-source: https://platform.openai.com/docs/assistants/how-it-works
-- [Learn more: How Assistants work](https://platform.openai.com/docs/assistants/how-it-works)
+- [How Assistants work](https://platform.openai.com/docs/assistants/how-it-works)
 - [Create Assistants](https://platform.openai.com/docs/assistants/how-it-works/creating-assistants)
 
 ## Dependencies :

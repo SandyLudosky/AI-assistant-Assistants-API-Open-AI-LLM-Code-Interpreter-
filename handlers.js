@@ -1,46 +1,34 @@
+const OpenAI = require("openai");
 const fs = require("fs");
 const path = require("path");
+require("dotenv").config();
+
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
 
 module.exports = {
-  // Example: Save a text file
-  saveTextFile: (content, filename) => {
-    print("content", content);
-    const filePath = path.join(__dirname, filename); // Change directory as needed
-    fs.writeFile(filePath, content, "utf8", (err) => {
-      if (err) {
-        console.error("Error writing file:", err);
-      } else {
-        console.log(`File saved successfully at ${filePath}`);
-      }
-    });
-  },
-  // Example: Save a binary file (like an image or PDF)
-  saveBinaryFile: (content, filename) => {
-    print("content", content);
-    const filePath = path.join(__dirname, filename); // Change directory as needed
-    fs.writeFile(filePath, content, { encoding: "binary" }, (err) => {
-      if (err) {
-        console.error("Error writing file:", err);
-      } else {
-        console.log(`File saved successfully at ${filePath}`);
-      }
-    });
-  },
-  downloadFile: async (fileContent) => {
-    // Specify the path where you want to save the file
-    const downloadPath = path.join(
-      process.env.HOME || process.env.USERPROFILE,
-      "Downloads",
-      "response.pdf"
-    );
+  // reading images and files from code interpreter
+  // https://platform.openai.com/docs/assistants/tools/code-interpreter
+  readFile: async (file) => {
+    const file_id = file.file_path.file_id;
+    onsole.log(file_id);
 
-    // Write the file content to the specified path
-    fs.writeFile(downloadPath, fileContent, (err) => {
-      if (err) {
-        console.error("Error saving the file:", err);
-      } else {
-        console.log("File downloaded successfully to:", downloadPath);
-      }
-    });
+    try {
+      const response = await openai.files.content(file_id);
+
+      // Extract the binary data from the Response object
+      const image_data = await response.arrayBuffer();
+
+      // Convert the binary data to a Buffer
+      const image_data_buffer = Buffer.from(image_data);
+
+      console.log(image_data_buffer);
+
+      // Save the image to a specific location
+      fs.writeFileSync("./image.png", image_data_buffer);
+    } catch (error) {
+      console.error(error);
+    }
   },
 };

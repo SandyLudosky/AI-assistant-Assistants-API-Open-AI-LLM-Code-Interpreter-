@@ -2,7 +2,7 @@ const OpenAI = require("openai");
 var readlineSync = require("readline-sync");
 const fs = require("fs");
 const path = require("path");
-const { saveTextFile, saveBinaryFile, downloadFile } = require("./handlers");
+const { readFile } = require("./handlers");
 require("dotenv").config();
 
 const openai = new OpenAI({
@@ -115,7 +115,12 @@ const retrieveMessages = async (run, thread, message, assistant) => {
       "user: ",
       message.content[message.content.length - 1].text.value
     );
-    console.log("assistant 🤖: ", messages.data[0].content[0].text.value);
+
+    if (messages.data[0].content[0].text) {
+      console.log("assistant 🤖: ", messages.data[0].content[0].text.value);
+    }
+
+    console.log(messages.data[0].content[0]);
 
     // check if there are any files attached to the assistant
     if (messages.data[0].content[0].text.annotations?.length > 0) {
@@ -136,8 +141,7 @@ const retrieveMessages = async (run, thread, message, assistant) => {
       const fileContent = await retrieveFileContent(file);
 
       // save text file
-      saveTextFile(fileContent, "response.txt");
-      saveBinaryFile(fileContent, "response.pdf");
+      readFile(file);
     }
   }
 };
