@@ -2,6 +2,7 @@ const OpenAI = require("openai");
 var readlineSync = require("readline-sync");
 const fs = require("fs");
 const path = require("path");
+const { saveTextFile, saveBinaryFile, downloadFile } = require("./handlers");
 require("dotenv").config();
 
 const openai = new OpenAI({
@@ -15,24 +16,35 @@ const ASSISTANT_NAME = "Math Tutor";
 const ASSISTANT_DEFAULT_INSTRUCTIONS =
   "You are a personal math tutor. Write and run code to answer math questions.";
 
-const downloadFile = async (fileContent) => {
-  // Specify the path where you want to save the file
-  const downloadPath = path.join(
-    process.env.HOME || process.env.USERPROFILE,
-    "Downloads",
-    "response.pdf"
-  );
-
-  console.log(process.env.HOME);
-
-  // Write the file content to the specified path
-  fs.writeFile(downloadPath, fileContent, (err) => {
-    if (err) {
-      console.error("Error saving the file:", err);
-    } else {
-      console.log("File downloaded successfully to:", downloadPath);
+// Step 7: Create a File object - retrieve the files attached to an assistant
+const createFileAssistant = async (assistant, file) => {
+  const file_id = file.file_path.file_id;
+  const assistantFile = await openai.beta.assistants.files.create(
+    assistant.id,
+    {
+      file_id,
     }
-  });
+  );
+  console.log(assistantFile);
+};
+
+const retrieveAssistantFile = async (assistant, file) => {
+  const file_id = file.file_path.file_id;
+  const assistantFile = await openai.beta.assistants.files.retrieve(
+    assistant.id,
+    file_id
+  );
+  console.log(assistantFile);
+  // downloadFile(myAssistantFile);
+};
+
+const retrieveFileContent = async (file) => {
+  const file_id = file.file_path.file_id;
+  try {
+    return await openai.files.retrieveContent(file_id);
+  } catch (error) {
+    console.error(error);
+  }
 };
 
 // Step 1: Create an Assistant
@@ -93,25 +105,39 @@ const checkRunStatus = async (run, thread) => {
 };
 
 // Step 6: Retrieve and display the Messages
-const retrieveMessages = async (run, thread, message) => {
+const retrieveMessages = async (run, thread, message, assistant) => {
   if (run.status === "completed") {
     console.log("This is the run status: ", run.status, "\n");
     const messages = await openai.beta.threads.messages.list(thread.id);
 
+    // display messages
     console.log(
       "user: ",
       message.content[message.content.length - 1].text.value
     );
-    console.log("assistant: ", messages.data[0].content[0].text.value);
+    console.log("assistant 🤖: ", messages.data[0].content[0].text.value);
 
-    console.log(messages.data[0].content[0].text);
-
+    // check if there are any files attached to the assistant
     if (messages.data[0].content[0].text.annotations?.length > 0) {
       console.log(
         "annotations: ",
         messages.data[0].content[0].text.annotations
       );
-      downloadFile(messages.data[0].content[0].text.annotations[0].text);
+
+      const file = messages.data[0].content[0].text.annotations[0];
+
+      // create assistant file object
+      await createFileAssistant(assistant, file);
+
+      // retrieve assistant file object
+      await retrieveAssistantFile(assistant, file);
+
+      // retrieve file content
+      const fileContent = await retrieveFileContent(file);
+
+      // save text file
+      saveTextFile(fileContent, "response.txt");
+      saveBinaryFile(fileContent, "response.pdf");
     }
   }
 };
@@ -143,6 +169,12 @@ async function main() {
     if (!!userMessage) {
       const message = await addMessageToThread(thread, userMessage);
 
+      // print user message
+      console.log(
+        "user: ",
+        message.content[message.content.length - 1].text.value
+      );
+
       // Step 4: Run the Assistant
       let run = await runThread(assistant, thread);
 
@@ -159,7 +191,7 @@ async function main() {
       }
 
       // Step 6: Retrieve and display the Messages
-      await retrieveMessages(run, thread, message);
+      await retrieveMessages(run, thread, message, assistant);
     }
   }
 }
